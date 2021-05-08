@@ -1,10 +1,17 @@
 const canvas = document.getElementById('canvas')
 const context = canvas.getContext('2d')
 
-canvas.width = canvas.parentElement.offsetWidth
-canvas.height = canvas.parentElement.offsetHeight
-
 const PI2 = Math.PI * 2
+
+const adjustCanvasSize = () => {
+  canvas.width = canvas.parentElement.offsetWidth
+  canvas.height = canvas.parentElement.offsetHeight
+}
+adjustCanvasSize()
+window.onresize = adjustCanvasSize
+
+const canvasMidWidth = canvas.width / 2
+const canvasMidHeight = canvas.height / 2
 
 const drawCircle = ({ x, y }, { radius, width }, { stroke, fill }) => {
   context.beginPath()
@@ -18,26 +25,23 @@ const drawCircle = ({ x, y }, { radius, width }, { stroke, fill }) => {
 
 const peekPosition = ({ x, y, velx, vely }, { radius, width }) => {
   return {
-    xsmall: x + velx - radius - width,
-    ysmall: y + vely - radius - width,
-    xbig: x + velx + radius + width,
-    ybig: y + vely + radius + width
+    xleft: x + velx - radius - width,
+    ytop: y + vely - radius - width,
+    xright: x + velx + radius + width,
+    ybottom: y + vely + radius + width
   }
 }
 
 const nextPosition = ({ x, y, velx, vely }, { radius, width }) => {
   const peek = peekPosition({ x, y, velx, vely }, { radius, width })
-  let nextVelx, nextVely
+  let nextVelx = velx
+  let nextVely = vely
 
-  if (peek.xsmall < 0 || peek.xbig > canvas.width) {
-    nextVelx = velx * -1
-  } else {
-    nextVelx = velx
+  if (peek.xleft < 0 || peek.xright > canvas.width) {
+    nextVelx *= -1
   }
-  if (peek.ysmall < 0 || peek.ybig > canvas.height) {
-    nextVely = vely * -1
-  } else {
-    nextVely = vely
+  if (peek.ytop < 0 || peek.ybottom > canvas.height) {
+    nextVely *= -1
   }
 
   return {
@@ -48,39 +52,44 @@ const nextPosition = ({ x, y, velx, vely }, { radius, width }) => {
   }
 }
 
-const circles = [
-  {
-    position: { x: canvas.width / 2, y: canvas.height / 2, velx: 2, vely: 4 },
-    dimension: { radius: 200, width: 2 },
-    style: { stroke: 'black', fill: 'blue' }
-  },
-  {
-    position: { x: canvas.width / 2, y: canvas.height / 2, velx: -3, vely: 2 },
-    dimension: { radius: 100, width: 3 },
-    style: { stroke: 'red', fill: 'yellow' }
-  },
-  {
-    position: { x: canvas.width / 2, y: canvas.height / 2, velx: 10, vely: 16 },
-    dimension: { radius: 20, width: 1 },
-    style: { stroke: 'green', fill: 'purple' }
-  }
-]
+const randomInteger = (from, to) => {
+  return Math.floor(Math.random() * (to - from + 1) + from)
+}
 
-const frameLimit = 1000000
-let frames = 0
+const randomHexColor = () => {
+  return `#${randomInteger(0, 16777215).toString(16)}`
+}
+
+const randomCircle = () => {
+  const x = canvasMidWidth
+  const y = canvasMidHeight
+  const velx = randomInteger(-30, 30)
+  const vely = randomInteger(-30, 30)
+  const radius = randomInteger(2, 200)
+  const width = randomInteger(1, 50)
+  const stroke = randomHexColor()
+  const fill = randomHexColor()
+
+  return {
+    position: { x, y, velx, vely },
+    dimension: { radius, width },
+    style: { stroke, fill }
+  }
+}
+
+const circles = [...Array(20)].map(_ => randomCircle())
 
 const runAnimation = () => {
-  frames += 1
-
   context.clearRect(0, 0, canvas.width, canvas.height)
+
   circles.forEach((circle) => {
     drawCircle(circle.position, circle.dimension, circle.style)
   })
+
   circles.forEach((circle) => {
     circle.position = nextPosition(circle.position, circle.dimension)
   })
-  if (frames < frameLimit) {
-    window.requestAnimationFrame(runAnimation)
-  }
+
+  window.requestAnimationFrame(runAnimation)
 }
 window.requestAnimationFrame(runAnimation)
